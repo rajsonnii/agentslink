@@ -1,0 +1,75 @@
+services:
+  # ==========================================
+  # Slink API & Log Streaming Control Plane
+  # ==========================================
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-4000}:4000"
+    environment:
+      - PORT=4000
+      - HOST=0.0.0.0
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-slink}:${POSTGRES_PASSWORD:-slink_secret_password}@postgres:5432/${POSTGRES_DB:-slink}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GITHUB_APP_ID=${GITHUB_APP_ID:-}
+      - GITHUB_PRIVATE_KEY=${GITHUB_PRIVATE_KEY:-}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - slink_network
+
+  # ==========================================
+  # Slink SaaS Web Dashboard (Next.js)
+  # ==========================================
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    environment:
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      - NODE_ENV=production
+      - SLINK_INTERNAL_API_URL=http://api:4000
+      - NEXT_PUBLIC_SLINK_API_URL=${NEXT_PUBLIC_SLINK_API_URL:-http://localhost:4000}
+    depends_on:
+      - api
+    networks:
+      - slink_network
+
+  # ==========================================
+  # PostgreSQL Database (Persistence)
+  # ==========================================
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-slink}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-slink_secret_password}
+      POSTGRES_DB: ${POSTGRES_DB:-slink}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-slink} -d ${POSTGRES_DB:-slink}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - slink_network
+
+networks:
+  slink_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
