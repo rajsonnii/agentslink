@@ -4,11 +4,13 @@ import React, { useState, useEffect } from 'react';
 import type { Incident, IncidentStatus } from '@slink/shared';
 
 export default function DashboardPage() {
+  const [activeTab, setActiveTab] = useState<'overview' | 'radar'>('overview');
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   const [filter, setFilter] = useState<'ALL' | 'ACTIVE' | 'PR_OPENED' | 'RECOVERED'>('ALL');
   const [isHealing, setIsHealing] = useState(false);
   const [healFeedback, setHealFeedback] = useState<string | null>(null);
+  const [copiedCli, setCopiedCli] = useState(false);
 
   // Fetch incidents from API backend
   const fetchIncidents = async () => {
@@ -19,7 +21,7 @@ export default function DashboardPage() {
         setIncidents(data.incidents || []);
       }
     } catch {
-      // Fallback sample data if API is loading or offline
+      // Fallback
     }
   };
 
@@ -51,6 +53,12 @@ export default function DashboardPage() {
     }
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedCli(true);
+    setTimeout(() => setCopiedCli(false), 2000);
+  };
+
   const filtered = incidents.filter((inc) => {
     if (filter === 'ACTIVE') return inc.status === 'OPEN' || inc.status === 'DIAGNOSING' || inc.status === 'PATCHING' || inc.status === 'VERIFYING';
     if (filter === 'PR_OPENED') return inc.status === 'PR_OPENED';
@@ -63,246 +71,438 @@ export default function DashboardPage() {
   const prCount = incidents.filter((i) => i.status === 'PR_OPENED').length;
 
   return (
-    <div className="space-y-8">
-      {/* Top Banner & Metrics */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-gray-800 bg-[#111827]/80 p-5 shadow-lg backdrop-blur">
-          <div className="text-xs font-medium uppercase tracking-wider text-gray-400">Active Incidents</div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-amber-400">{activeCount}</span>
-            <span className="text-xs text-gray-400">requiring attention</span>
-          </div>
+    <div className="space-y-12">
+      {/* SaaS Product Navigation Bar */}
+      <div className="flex items-center justify-between border-b border-gray-800 pb-4">
+        <div className="flex gap-4">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`text-sm font-semibold transition-colors pb-2 -mb-4 border-b-2 ${
+              activeTab === 'overview'
+                ? 'border-emerald-500 text-white'
+                : 'border-transparent text-gray-400 hover:text-white'
+            }`}
+          >
+            Product Overview
+          </button>
+          <button
+            onClick={() => setActiveTab('radar')}
+            className={`text-sm font-semibold transition-colors pb-2 -mb-4 border-b-2 flex items-center gap-2 ${
+              activeTab === 'radar'
+                ? 'border-emerald-500 text-white'
+                : 'border-transparent text-gray-400 hover:text-white'
+            }`}
+          >
+            <span>Live Incident Radar</span>
+            {activeCount > 0 && (
+              <span className="rounded-full bg-amber-500/20 px-1.5 py-0.2 text-[11px] font-bold text-amber-400">
+                {activeCount}
+              </span>
+            )}
+          </button>
         </div>
 
-        <div className="rounded-2xl border border-gray-800 bg-[#111827]/80 p-5 shadow-lg backdrop-blur">
-          <div className="text-xs font-medium uppercase tracking-wider text-gray-400">PRs Waiting Merge</div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-blue-400">{prCount}</span>
-            <span className="text-xs text-emerald-400">sandbox verified</span>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-gray-800 bg-[#111827]/80 p-5 shadow-lg backdrop-blur">
-          <div className="text-xs font-medium uppercase tracking-wider text-gray-400">Restored Services</div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-emerald-400">{recoveredCount}</span>
-            <span className="text-xs text-emerald-400">gecko healed</span>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-gray-800 bg-[#111827]/80 p-5 shadow-lg backdrop-blur">
-          <div className="text-xs font-medium uppercase tracking-wider text-gray-400">Autonomous Healing</div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-white">99.2%</span>
-            <span className="text-xs text-emerald-400">uptime guard</span>
-          </div>
-        </div>
+        <button
+          onClick={() => setActiveTab('radar')}
+          className="rounded-xl bg-emerald-500 px-4 py-2 text-xs font-bold text-black transition-all hover:bg-emerald-400 shadow-lg shadow-emerald-500/10"
+        >
+          Open Control Plane &rarr;
+        </button>
       </div>
 
-      {/* Main Grid: Incidents & Live Stream */}
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        {/* Left Column: Incidents List */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-              <span>Incident Radar</span>
-              <span className="rounded-md bg-gray-800 px-2 py-0.5 text-xs font-normal text-gray-300">
-                {filtered.length} total
+      {activeTab === 'overview' ? (
+        /* ========================================================================= */
+        /* SAAS LANDING PAGE (Hero, 3 Connections, Lifecycle, & Quickstart)          */
+        /* ========================================================================= */
+        <div className="space-y-20">
+          {/* Hero Section */}
+          <section className="text-center space-y-6 pt-6">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Autonomous Self-Healing Infrastructure
+            </div>
+            <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white max-w-4xl mx-auto leading-tight">
+              Watch your application recover <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
+                like a gecko regrowing its tail.
               </span>
-            </h2>
+            </h1>
+            <p className="text-base sm:text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
+              Agent Slink intercepts runtime errors and broken pages, synthesizes stack traces with recent git commits, diagnoses root causes, runs tests in an isolated sandbox, and opens verified GitHub pull requests.
+            </p>
 
-            {/* Filter Tabs */}
-            <div className="flex rounded-lg border border-gray-800 bg-gray-900/80 p-1 text-xs">
-              {(['ALL', 'ACTIVE', 'PR_OPENED', 'RECOVERED'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setFilter(tab)}
-                  className={`rounded-md px-3 py-1 font-medium transition-all ${
-                    filter === tab
-                      ? 'bg-emerald-500 text-black shadow'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  {tab.replace('_', ' ')}
-                </button>
-              ))}
+            <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+              <button
+                onClick={() => setActiveTab('radar')}
+                className="rounded-xl bg-emerald-500 px-6 py-3 text-sm font-bold text-black transition-all hover:bg-emerald-400 shadow-xl shadow-emerald-500/20"
+              >
+                Launch Dashboard Demo
+              </button>
+              <button
+                onClick={() => copyToClipboard('npx @slink/cli run -- npm start')}
+                className="flex items-center gap-2 rounded-xl border border-gray-800 bg-gray-900/80 px-5 py-3 text-sm font-mono text-gray-300 hover:border-gray-700"
+              >
+                <span>$ npx @slink/cli run -- npm start</span>
+                <span className="text-xs text-emerald-400">{copiedCli ? 'Copied!' : 'Copy'}</span>
+              </button>
+            </div>
+          </section>
+
+          {/* Three Ways Slink Connects to Your Project */}
+          <section className="space-y-8">
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+                Connected in Three Powerful Ways
+              </h2>
+              <p className="text-sm text-gray-400">
+                Full-spectrum observation from the terminal process to the DOM and git tree.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Way 1: CLI Wrapper */}
+              <div className="rounded-2xl border border-gray-800 bg-[#111827]/80 p-6 space-y-4 hover:border-emerald-500/30 transition-all">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-2xl ring-1 ring-emerald-500/30">
+                  ⚡
+                </div>
+                <h3 className="text-lg font-bold text-white">1. Lightweight CLI Wrapper</h3>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  <code className="text-emerald-400 font-mono">slink run -- &lt;cmd&gt;</code> wraps your app’s start command. It passes stdin/stdout unbuffered to your console while streaming logs in real time to the Slink API with crash and non-zero exit detection.
+                </p>
+              </div>
+
+              {/* Way 2: Synthetic Browser Watcher */}
+              <div className="rounded-2xl border border-gray-800 bg-[#111827]/80 p-6 space-y-4 hover:border-cyan-500/30 transition-all">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/10 text-2xl ring-1 ring-cyan-500/30">
+                  🌐
+                </div>
+                <h3 className="text-lg font-bold text-white">2. Headless Browser Watcher</h3>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  A headless Chromium engine periodically checks your website for 500 errors, broken pages, uncaught console exceptions, and failed network calls, capturing full DOM snapshots and visual screenshots upon failure.
+                </p>
+              </div>
+
+              {/* Way 3: GitHub App */}
+              <div className="rounded-2xl border border-gray-800 bg-[#111827]/80 p-6 space-y-4 hover:border-purple-500/30 transition-all">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500/10 text-2xl ring-1 ring-purple-500/30">
+                  🐙
+                </div>
+                <h3 className="text-lg font-bold text-white">3. GitHub App Integration</h3>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Provides Agent Slink read/write access to commits, diffs, and source files. When tests pass in the isolated sandbox, Slink opens a formatted GitHub Pull Request explaining the root cause and the fix.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* End-to-End User Flow (The Gecko Loop) */}
+          <section className="rounded-3xl border border-gray-800 bg-[#111827]/40 p-8 sm:p-12 space-y-10">
+            <div className="text-center space-y-2">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-400">
+                End-to-End Self-Healing Lifecycle
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+                How a Developer Uses Agent Slink
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-xs font-extrabold text-black">
+                    1
+                  </span>
+                  <h4 className="text-sm font-bold text-white">Connect Project</h4>
+                </div>
+                <p className="text-xs text-gray-400">
+                  Run <code className="text-emerald-400 font-mono">slink init</code> in your repository and set your project endpoint. Install the GitHub App to grant commit and PR rights.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-xs font-extrabold text-black">
+                    2
+                  </span>
+                  <h4 className="text-sm font-bold text-white">Run with Observation</h4>
+                </div>
+                <p className="text-xs text-gray-400">
+                  Start your app with <code className="text-emerald-400 font-mono">slink run -- npm start</code>. Logs are monitored, filtered, and deduplicated in real-time.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-xs font-extrabold text-black">
+                    3
+                  </span>
+                  <h4 className="text-sm font-bold text-white">Autonomous Patch</h4>
+                </div>
+                <p className="text-xs text-gray-400">
+                  Upon error or crash, Slink groups duplicates, runs AI diagnosis, applies a surgical fix, and executes your project tests in an isolated sandbox.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-xs font-extrabold text-black">
+                    4
+                  </span>
+                  <h4 className="text-sm font-bold text-white">PR & Recovery</h4>
+                </div>
+                <p className="text-xs text-gray-400">
+                  If tests pass, a GitHub PR is opened. Once merged and deployed, the headless browser pings your site and confirms recovery automatically!
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
+      ) : (
+        /* ========================================================================= */
+        /* LIVE INCIDENT CONTROL PLANE & DIAGNOSTICS DASHBOARD                       */
+        /* ========================================================================= */
+        <div className="space-y-8">
+          {/* Top Banner & Metrics */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-2xl border border-gray-800 bg-[#111827]/80 p-5 shadow-lg backdrop-blur">
+              <div className="text-xs font-medium uppercase tracking-wider text-gray-400">Active Incidents</div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-3xl font-extrabold text-amber-400">{activeCount}</span>
+                <span className="text-xs text-gray-400">requiring attention</span>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-gray-800 bg-[#111827]/80 p-5 shadow-lg backdrop-blur">
+              <div className="text-xs font-medium uppercase tracking-wider text-gray-400">PRs Waiting Merge</div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-3xl font-extrabold text-blue-400">{prCount}</span>
+                <span className="text-xs text-emerald-400">sandbox verified</span>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-gray-800 bg-[#111827]/80 p-5 shadow-lg backdrop-blur">
+              <div className="text-xs font-medium uppercase tracking-wider text-gray-400">Restored Services</div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-3xl font-extrabold text-emerald-400">{recoveredCount}</span>
+                <span className="text-xs text-emerald-400">gecko healed</span>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-gray-800 bg-[#111827]/80 p-5 shadow-lg backdrop-blur">
+              <div className="text-xs font-medium uppercase tracking-wider text-gray-400">Autonomous Healing</div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-3xl font-extrabold text-white">99.2%</span>
+                <span className="text-xs text-emerald-400">uptime guard</span>
+              </div>
             </div>
           </div>
 
-          {filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-800 bg-[#111827]/40 p-12 text-center">
-              <span className="text-4xl">🦎</span>
-              <h3 className="mt-3 text-sm font-semibold text-white">All systems healthy</h3>
-              <p className="mt-1 text-xs text-gray-400">
-                Agent Slink is watching your apps via CLI wrapper and synthetic browser pings.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {filtered.map((inc) => (
-                <div
-                  key={inc.id}
-                  onClick={() => setSelectedIncident(inc)}
-                  className={`group relative cursor-pointer rounded-xl border p-4 transition-all hover:border-emerald-500/50 hover:shadow-lg ${
-                    selectedIncident?.id === inc.id
-                      ? 'border-emerald-500 bg-gray-900/90 ring-1 ring-emerald-500'
-                      : 'border-gray-800/80 bg-[#111827]/80 hover:bg-[#111827]'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-medium text-gray-400">
-                          {inc.projectId}
-                        </span>
-                        <span className="text-xs text-gray-600">•</span>
-                        <span className="text-xs font-mono text-gray-500">
-                          {inc.fingerprint.slice(0, 8)}
-                        </span>
-                        {inc.occurrenceCount > 1 && (
-                          <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-400 border border-amber-500/20">
-                            {inc.occurrenceCount}x
-                          </span>
-                        )}
-                      </div>
-                      <h4 className="text-sm font-semibold text-white group-hover:text-emerald-400 transition-colors">
-                        {inc.title}
-                      </h4>
-                      <p className="line-clamp-1 text-xs text-gray-400">
-                        {inc.errorSummary}
-                      </p>
-                    </div>
+          {/* Main Grid: Incidents & Live Stream */}
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+            {/* Left Column: Incidents List */}
+            <div className="lg:col-span-2 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                  <span>Incident Radar</span>
+                  <span className="rounded-md bg-gray-800 px-2 py-0.5 text-xs font-normal text-gray-300">
+                    {filtered.length} total
+                  </span>
+                </h2>
 
-                    <div className="flex flex-col items-end gap-1.5 shrink-0">
-                      <StatusBadge status={inc.status} />
-                      <span className="text-[10px] text-gray-500">
-                        {new Date(inc.lastSeenAt).toLocaleTimeString()}
-                      </span>
-                    </div>
-                  </div>
+                {/* Filter Tabs */}
+                <div className="flex rounded-lg border border-gray-800 bg-gray-900/80 p-1 text-xs">
+                  {(['ALL', 'ACTIVE', 'PR_OPENED', 'RECOVERED'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setFilter(tab)}
+                      className={`rounded-md px-3 py-1 font-medium transition-all ${
+                        filter === tab
+                          ? 'bg-emerald-500 text-black shadow'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      {tab.replace('_', ' ')}
+                    </button>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Right Column: Incident Detail / Inspector */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold tracking-tight text-white">Diagnostics & Repair</h2>
-
-          {selectedIncident ? (
-            <div className="rounded-2xl border border-gray-800 bg-[#111827] p-5 shadow-xl space-y-5">
-              <div className="flex items-center justify-between border-b border-gray-800 pb-4">
-                <div>
-                  <span className="text-xs font-mono text-gray-400">{selectedIncident.id}</span>
-                  <h3 className="text-base font-bold text-white mt-0.5">{selectedIncident.title}</h3>
-                </div>
-                <StatusBadge status={selectedIncident.status} />
               </div>
 
-              {/* Action Button */}
-              {selectedIncident.status !== 'RECOVERED' && (
-                <div>
-                  <button
-                    disabled={isHealing}
-                    onClick={() => handleTriggerHeal(selectedIncident.id)}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-bold text-black transition-all hover:bg-emerald-400 disabled:opacity-50"
-                  >
-                    {isHealing ? (
-                      <>
-                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-black border-t-transparent" />
-                        <span>Diagnosing & Testing Patch in Sandbox...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>⚡</span>
-                        <span>Auto-Heal with Agent Slink</span>
-                      </>
-                    )}
-                  </button>
-                  {healFeedback && (
-                    <div className="mt-2 text-center text-xs font-medium text-emerald-400">
-                      {healFeedback}
+              {filtered.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-800 bg-[#111827]/40 p-12 text-center">
+                  <span className="text-4xl">🦎</span>
+                  <h3 className="mt-3 text-sm font-semibold text-white">All systems healthy</h3>
+                  <p className="mt-1 text-xs text-gray-400">
+                    Agent Slink is watching your apps via CLI wrapper and synthetic browser pings.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filtered.map((inc) => (
+                    <div
+                      key={inc.id}
+                      onClick={() => setSelectedIncident(inc)}
+                      className={`group relative cursor-pointer rounded-xl border p-4 transition-all hover:border-emerald-500/50 hover:shadow-lg ${
+                        selectedIncident?.id === inc.id
+                          ? 'border-emerald-500 bg-gray-900/90 ring-1 ring-emerald-500'
+                          : 'border-gray-800/80 bg-[#111827]/80 hover:bg-[#111827]'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-mono font-medium text-gray-400">
+                              {inc.projectId}
+                            </span>
+                            <span className="text-xs text-gray-600">•</span>
+                            <span className="text-xs font-mono text-gray-500">
+                              {inc.fingerprint.slice(0, 8)}
+                            </span>
+                            {inc.occurrenceCount > 1 && (
+                              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-400 border border-amber-500/20">
+                                {inc.occurrenceCount}x
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="text-sm font-semibold text-white group-hover:text-emerald-400 transition-colors">
+                            {inc.title}
+                          </h4>
+                          <p className="line-clamp-1 text-xs text-gray-400">
+                            {inc.errorSummary}
+                          </p>
+                        </div>
+
+                        <div className="flex flex-col items-end gap-1.5 shrink-0">
+                          <StatusBadge status={inc.status} />
+                          <span className="text-[10px] text-gray-500">
+                            {new Date(inc.lastSeenAt).toLocaleTimeString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Right Column: Incident Detail / Inspector */}
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold tracking-tight text-white">Diagnostics & Repair</h2>
+
+              {selectedIncident ? (
+                <div className="rounded-2xl border border-gray-800 bg-[#111827] p-5 shadow-xl space-y-5">
+                  <div className="flex items-center justify-between border-b border-gray-800 pb-4">
+                    <div>
+                      <span className="text-xs font-mono text-gray-400">{selectedIncident.id}</span>
+                      <h3 className="text-base font-bold text-white mt-0.5">{selectedIncident.title}</h3>
+                    </div>
+                    <StatusBadge status={selectedIncident.status} />
+                  </div>
+
+                  {/* Action Button */}
+                  {selectedIncident.status !== 'RECOVERED' && (
+                    <div>
+                      <button
+                        disabled={isHealing}
+                        onClick={() => handleTriggerHeal(selectedIncident.id)}
+                        className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-bold text-black transition-all hover:bg-emerald-400 disabled:opacity-50"
+                      >
+                        {isHealing ? (
+                          <>
+                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-black border-t-transparent" />
+                            <span>Diagnosing & Testing Patch in Sandbox...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>⚡</span>
+                            <span>Auto-Heal with Agent Slink</span>
+                          </>
+                        )}
+                      </button>
+                      {healFeedback && (
+                        <div className="mt-2 text-center text-xs font-medium text-emerald-400">
+                          {healFeedback}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Root Cause Analysis (RCA) */}
+                  {selectedIncident.diagnosis && (
+                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-4 space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-bold text-emerald-400">
+                        <span>🧠</span>
+                        <span>AI Root Cause Analysis</span>
+                      </div>
+                      <p className="text-xs text-gray-300 leading-relaxed">
+                        {selectedIncident.diagnosis.rootCause}
+                      </p>
+                      <p className="text-xs text-gray-400 italic">
+                        Fix: {selectedIncident.diagnosis.proposedFix}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Pull Request Card */}
+                  {selectedIncident.pullRequest && (
+                    <div className="rounded-xl border border-blue-500/30 bg-blue-950/20 p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-blue-400 flex items-center gap-1.5">
+                          <span>🐙</span>
+                          <span>GitHub Pull Request #{selectedIncident.pullRequest.number}</span>
+                        </span>
+                        <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-semibold text-blue-300">
+                          {selectedIncident.pullRequest.branch}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-300 line-clamp-2">
+                        {selectedIncident.pullRequest.title}
+                      </p>
+                      <a
+                        href={selectedIncident.pullRequest.htmlUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-blue-400 hover:text-blue-300 hover:underline"
+                      >
+                        View Pull Request on GitHub &rarr;
+                      </a>
+                    </div>
+                  )}
+
+                  {/* Sandbox Verification Output */}
+                  {selectedIncident.verification && (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs font-semibold text-gray-400">
+                        <span>Isolated Sandbox Verification</span>
+                        <span className={selectedIncident.verification.passed ? 'text-emerald-400' : 'text-red-400'}>
+                          {selectedIncident.verification.passed ? '✅ PASSED' : '❌ FAILED'} ({selectedIncident.verification.durationMs}ms)
+                        </span>
+                      </div>
+                      <div className="max-h-36 overflow-y-auto rounded-lg bg-black/60 p-3 font-mono text-[11px] text-gray-300 border border-gray-800">
+                        <pre className="whitespace-pre-wrap">{selectedIncident.verification.stdout || selectedIncident.verification.stderr || 'Tests completed cleanly.'}</pre>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Stack Trace */}
+                  {selectedIncident.stackTrace && (
+                    <div className="space-y-1.5">
+                      <div className="text-xs font-semibold text-gray-400">Stack Trace</div>
+                      <div className="max-h-40 overflow-y-auto rounded-lg bg-black/60 p-3 font-mono text-[11px] text-red-300/90 border border-gray-800">
+                        <pre className="whitespace-pre-wrap">{selectedIncident.stackTrace}</pre>
+                      </div>
                     </div>
                   )}
                 </div>
-              )}
-
-              {/* Root Cause Analysis (RCA) */}
-              {selectedIncident.diagnosis && (
-                <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-4 space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-400">
-                    <span>🧠</span>
-                    <span>AI Root Cause Analysis</span>
-                  </div>
-                  <p className="text-xs text-gray-300 leading-relaxed">
-                    {selectedIncident.diagnosis.rootCause}
-                  </p>
-                  <p className="text-xs text-gray-400 italic">
-                    Fix: {selectedIncident.diagnosis.proposedFix}
-                  </p>
-                </div>
-              )}
-
-              {/* Pull Request Card */}
-              {selectedIncident.pullRequest && (
-                <div className="rounded-xl border border-blue-500/30 bg-blue-950/20 p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-blue-400 flex items-center gap-1.5">
-                      <span>🐙</span>
-                      <span>GitHub Pull Request #{selectedIncident.pullRequest.number}</span>
-                    </span>
-                    <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-semibold text-blue-300">
-                      {selectedIncident.pullRequest.branch}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-300 line-clamp-2">
-                    {selectedIncident.pullRequest.title}
-                  </p>
-                  <a
-                    href={selectedIncident.pullRequest.htmlUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-blue-400 hover:text-blue-300 hover:underline"
-                  >
-                    View Pull Request on GitHub &rarr;
-                  </a>
-                </div>
-              )}
-
-              {/* Sandbox Verification Output */}
-              {selectedIncident.verification && (
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs font-semibold text-gray-400">
-                    <span>Isolated Sandbox Verification</span>
-                    <span className={selectedIncident.verification.passed ? 'text-emerald-400' : 'text-red-400'}>
-                      {selectedIncident.verification.passed ? '✅ PASSED' : '❌ FAILED'} ({selectedIncident.verification.durationMs}ms)
-                    </span>
-                  </div>
-                  <div className="max-h-36 overflow-y-auto rounded-lg bg-black/60 p-3 font-mono text-[11px] text-gray-300 border border-gray-800">
-                    <pre className="whitespace-pre-wrap">{selectedIncident.verification.stdout || selectedIncident.verification.stderr || 'Tests completed cleanly.'}</pre>
-                  </div>
-                </div>
-              )}
-
-              {/* Stack Trace */}
-              {selectedIncident.stackTrace && (
-                <div className="space-y-1.5">
-                  <div className="text-xs font-semibold text-gray-400">Stack Trace</div>
-                  <div className="max-h-40 overflow-y-auto rounded-lg bg-black/60 p-3 font-mono text-[11px] text-red-300/90 border border-gray-800">
-                    <pre className="whitespace-pre-wrap">{selectedIncident.stackTrace}</pre>
-                  </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-800 bg-[#111827]/40 p-8 text-center text-gray-500">
+                  <span className="text-3xl mb-2">👈</span>
+                  <p className="text-xs">Select an incident from the radar to inspect logs, root cause analysis, and trigger auto-repair.</p>
                 </div>
               )}
             </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-800 bg-[#111827]/40 p-8 text-center text-gray-500">
-              <span className="text-3xl mb-2">👈</span>
-              <p className="text-xs">Select an incident from the radar to inspect logs, root cause analysis, and trigger auto-repair.</p>
-            </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
