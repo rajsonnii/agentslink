@@ -63,10 +63,14 @@ POSTGRES_DB=slink
 # Public URLs
 NEXT_PUBLIC_SLINK_API_URL=https://slink-api.yourdomain.com
 
-# LLM Providers (Provide at least one for automated AI repair)
-GEMINI_API_KEY=your_gemini_api_key_here
-# or
-OPENAI_API_KEY=your_openai_api_key_here
+# AI Repair Provider (OpenRouter - Affordable & High Performance)
+OPENROUTER_API_KEY=sk-or-v1-xxxxxxxxxxxxxxxxxxxx
+# Model: google/gemini-2.0-flash-001 (~$0.10/1M tokens) or deepseek/deepseek-chat
+OPENROUTER_MODEL=google/gemini-2.0-flash-001
+
+# Alternative Direct Providers (Optional if OPENROUTER_API_KEY is provided)
+# GEMINI_API_KEY=your_gemini_api_key
+# OPENAI_API_KEY=your_openai_api_key
 
 # GitHub Integration (Optional for local test, required for automated GitHub PRs)
 GITHUB_APP_ID=your_github_app_id
