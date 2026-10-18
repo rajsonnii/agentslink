@@ -1,0 +1,25 @@
+# Ignore local node_modules so Docker builds clean Linux native binaries
+node_modules/
+*/node_modules/
+*/*/node_modules/
+
+# Build artifacts
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Git and logs
+.git/
+.gitignore
+*.log
+npm-debug.log*
+
+# Environment and temporary files
+.env
+.env.local
+.env.*.local
+tmp/
+.turbo/
+.DS_Store

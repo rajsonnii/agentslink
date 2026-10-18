@@ -21,6 +21,9 @@ services:
       - GITHUB_APP_ID=${GITHUB_APP_ID:-}
       - GITHUB_PRIVATE_KEY=${GITHUB_PRIVATE_KEY:-}
       - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET:-}
+      - SLINK_DATA_DIR=/app/data
+    volumes:
+      - slink_data:/app/data
     depends_on:
       postgres:
         condition: service_healthy
@@ -74,4 +77,6 @@ networks:
 
 volumes:
   postgres_data:
+    driver: local
+  slink_data:
     driver: local
