@@ -1,0 +1,28 @@
+{
+  "name": "agentslink-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Agent Slink - Autonomous self-healing infrastructure agent for live applications",
+  "workspaces": [
+    "packages/*",
+    "services/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run --workspaces --if-present build",
+    "test": "npm run --workspaces --if-present test",
+    "test:e2e": "node --test tests/e2e/self-healing.test.ts",
+    "lint": "npm run --workspaces --if-present lint",
+    "typecheck": "npm run --workspaces --if-present typecheck",
+    "dev:api": "npm run --workspace=@slink/api dev",
+    "dev:cli": "npm run --workspace=@slink/cli dev"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

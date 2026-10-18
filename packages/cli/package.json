@@ -1,0 +1,25 @@
+{
+  "name": "@slink/cli",
+  "version": "0.1.0",
+  "bin": {
+    "slink": "./dist/bin/slink.js"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "node --test dist/**/*.test.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@slink/shared": "*",
+    "commander": "^12.1.0",
+    "picocolors": "^1.1.1",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@types/ws": "^8.5.13",
+    "typescript": "^5.7.2"
+  }
+}

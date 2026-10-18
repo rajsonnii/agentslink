@@ -1,0 +1,21 @@
+{
+  "name": "@slink/agent",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "node --test dist/**/*.test.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@slink/shared": "*",
+    "diff": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/diff": "^7.0.1",
+    "@types/node": "^22.10.1",
+    "typescript": "^5.7.2"
+  }
+}
